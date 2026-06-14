@@ -1,0 +1,86 @@
+{
+  "project_info": {
+    "project_number": "448484753980",
+    "project_id": "impergram-9f840",
+    "storage_bucket": "impergram-9f840.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448484753980:android:b12ae6fa95332641d17939",
+        "android_client_info": {
+          "package_name": "com.gvolc.messenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV_msWHxj8-F9O53MueSO9MQ2mUAW8gmE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448484753980:android:a50390660e03b02dd17939",
+        "android_client_info": {
+          "package_name": "com.gvolc.messenger.beta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV_msWHxj8-F9O53MueSO9MQ2mUAW8gmE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448484753980:android:36229bac504b1f3ed17939",
+        "android_client_info": {
+          "package_name": "org.telegram.messenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV_msWHxj8-F9O53MueSO9MQ2mUAW8gmE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448484753980:android:ab13f7c10d4b5831d17939",
+        "android_client_info": {
+          "package_name": "org.telegram.messenger.beta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV_msWHxj8-F9O53MueSO9MQ2mUAW8gmE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
