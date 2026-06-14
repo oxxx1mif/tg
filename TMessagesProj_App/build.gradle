@@ -12,6 +12,10 @@ configurations {
 configurations.all {
     exclude group: 'com.google.firebase', module: 'firebase-core'
     exclude group: 'androidx.recyclerview', module: 'recyclerview'
+    resolutionStrategy {
+        force 'androidx.core:core:1.15.0'
+        force 'androidx.core:core-ktx:1.15.0'
+    }
 }
 
 dependencies {
@@ -27,6 +31,14 @@ android {
     defaultConfig.applicationId = APP_PACKAGE
 
     sourceSets.main.jniLibs.srcDirs = ['../TMessagesProj/jni/']
+
+    packaging {
+        resources {
+            excludes += '/META-INF/versions/9/OSGI-INF/MANIFEST.MF'
+            pickFirsts += 'META-INF/LICENSE*'
+            pickFirsts += 'META-INF/NOTICE*'
+        }
+    }
 
     lintOptions {
         disable 'MissingTranslation'
@@ -128,7 +140,7 @@ android {
             sourceSets.release {
                 manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_SDK23.xml'
             }
-            minSdkVersion 23
+            minSdkVersion 24
             ext {
                 abiVersionCode = 2
             }
@@ -171,7 +183,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 24
         targetSdkVersion 35
         versionName APP_VERSION_NAME
         ndkVersion "27.2.12479018"

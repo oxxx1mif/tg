@@ -55,7 +55,8 @@ public class SharedConfig {
      * V2: Ping and check time serialized
      */
     private final static int PROXY_SCHEMA_V2 = 2;
-    private final static int PROXY_CURRENT_SCHEMA_VERSION = PROXY_SCHEMA_V2;
+    private final static int PROXY_SCHEMA_V3 = 3;
+    private final static int PROXY_CURRENT_SCHEMA_VERSION = PROXY_SCHEMA_V3;
 
     public final static int PASSCODE_TYPE_PIN = 0,
             PASSCODE_TYPE_PASSWORD = 1;
@@ -374,6 +375,9 @@ public class SharedConfig {
     }
 
     public static class ProxyInfo {
+
+        public boolean isAmneziaWG;
+        public String awgConfigId;
 
         public String address;
         public int port;
@@ -1436,6 +1440,7 @@ public class SharedConfig {
         String proxyUsername = preferences.getString("proxy_user", "");
         String proxyPassword = preferences.getString("proxy_pass", "");
         String proxySecret = preferences.getString("proxy_secret", "");
+        String proxyAwgConfigId = preferences.getString("proxy_awg_id", "");
         int proxyPort = preferences.getInt("proxy_port", 1080);
 
         proxyListLoaded = true;
@@ -1449,7 +1454,36 @@ public class SharedConfig {
             if (count == -1) { // V2 or newer
                 int version = data.readByte(false);
 
-                if (version == PROXY_SCHEMA_V2) {
+                if (version == PROXY_SCHEMA_V3) {
+                    count = data.readInt32(false);
+
+                    for (int i = 0; i < count; i++) {
+                        ProxyInfo info = new ProxyInfo(
+                                data.readString(false),
+                                data.readInt32(false),
+                                data.readString(false),
+                                data.readString(false),
+                                data.readString(false));
+
+                        info.ping = data.readInt64(false);
+                        info.availableCheckTime = data.readInt64(false);
+                        info.isAmneziaWG = data.readBool(false);
+                        info.awgConfigId = data.readString(false);
+
+                        proxyList.add(0, info);
+                        if (currentProxy == null && !TextUtils.isEmpty(proxyAddress)) {
+                            if (info.isAmneziaWG) {
+                                if (proxyAwgConfigId.equals(info.awgConfigId)) {
+                                    currentProxy = info;
+                                }
+                            } else {
+                                if (proxyAddress.equals(info.address) && proxyPort == info.port && proxyUsername.equals(info.username) && proxyPassword.equals(info.password) && proxySecret.equals(info.secret)) {
+                                    currentProxy = info;
+                                }
+                            }
+                        }
+                    }
+                } else if (version == PROXY_SCHEMA_V2) {
                     count = data.readInt32(false);
 
                     for (int i = 0; i < count; i++) {
@@ -1470,8 +1504,6 @@ public class SharedConfig {
                             }
                         }
                     }
-                } else {
-                    FileLog.e("Unknown proxy schema version: " + version);
                 }
             } else {
                 for (int a = 0; a < count; a++) {
@@ -1525,6 +1557,8 @@ public class SharedConfig {
 
             serializedData.writeInt64(info.ping);
             serializedData.writeInt64(info.availableCheckTime);
+            serializedData.writeBool(info.isAmneziaWG);
+            serializedData.writeString(info.awgConfigId != null ? info.awgConfigId : "");
         }
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
         preferences.edit().putString("proxy_list", Base64.encodeToString(serializedData.toByteArray(), Base64.NO_WRAP)).apply();

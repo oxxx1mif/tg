@@ -13,15 +13,18 @@ import static org.telegram.messenger.LocaleController.getString;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
+import android.net.VpnService;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -47,6 +50,9 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.ProxyRotationController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.messenger.amnezia.AmneziaManager;
+import org.telegram.messenger.amnezia.AmneziaVpnService;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarMenu;
@@ -182,7 +188,17 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         public void updateStatus() {
             int colorKey;
             if (SharedConfig.currentProxy == currentInfo && useProxySettings) {
-                if (currentConnectionState == ConnectionsManager.ConnectionStateConnected || currentConnectionState == ConnectionsManager.ConnectionStateUpdating) {
+                if (currentInfo.isAmneziaWG) {
+                    String status = AmneziaVpnService.getStatus();
+                    valueTextView.setText(status);
+                    if ("Connected".equals(status)) {
+                        colorKey = Theme.key_windowBackgroundWhiteBlueText6;
+                    } else if ("Connecting...".equals(status)) {
+                        colorKey = Theme.key_windowBackgroundWhiteGrayText2;
+                    } else {
+                        colorKey = Theme.key_text_RedRegular;
+                    }
+                } else if (currentConnectionState == ConnectionsManager.ConnectionStateConnected || currentConnectionState == ConnectionsManager.ConnectionStateUpdating) {
                     colorKey = Theme.key_windowBackgroundWhiteBlueText6;
                     if (currentInfo.ping != 0) {
                         valueTextView.setText(getString(R.string.Connected) + ", " + LocaleController.formatString("Ping", R.string.Ping, currentInfo.ping));
@@ -197,7 +213,10 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                     valueTextView.setText(getString(R.string.Connecting));
                 }
             } else {
-                if (currentInfo.checking) {
+                if (currentInfo.isAmneziaWG) {
+                    valueTextView.setText("AmneziaWG");
+                    colorKey = Theme.key_windowBackgroundWhiteGrayText2;
+                } else if (currentInfo.checking) {
                     valueTextView.setText(getString(R.string.Checking));
                     colorKey = Theme.key_windowBackgroundWhiteGrayText2;
                 } else if (currentInfo.available) {
@@ -406,6 +425,7 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                             editor.putString("proxy_user", SharedConfig.currentProxy.username);
                             editor.putInt("proxy_port", SharedConfig.currentProxy.port);
                             editor.putString("proxy_secret", SharedConfig.currentProxy.secret);
+                            editor.putString("proxy_awg_id", SharedConfig.currentProxy.awgConfigId);
                             editor.commit();
                         }
                     } else {
@@ -433,7 +453,22 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 editor.putBoolean("proxy_enabled", useProxySettings);
                 editor.commit();
 
-                ConnectionsManager.setProxySettings(useProxySettings, SharedConfig.currentProxy.address, SharedConfig.currentProxy.port, SharedConfig.currentProxy.username, SharedConfig.currentProxy.password, SharedConfig.currentProxy.secret);
+                if (SharedConfig.currentProxy != null && SharedConfig.currentProxy.isAmneziaWG) {
+                    if (useProxySettings) {
+                        Intent vpnIntent = VpnService.prepare(getParentActivity());
+                        if (vpnIntent != null) {
+                            startActivityForResult(vpnIntent, 100);
+                        } else {
+                            AmneziaManager.startVpn(getParentActivity(), SharedConfig.currentProxy);
+                        }
+                    } else {
+                        AmneziaManager.stopVpn(getParentActivity());
+                    }
+                    ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+                } else {
+                    AmneziaManager.stopVpn(getParentActivity());
+                    ConnectionsManager.setProxySettings(useProxySettings, SharedConfig.currentProxy.address, SharedConfig.currentProxy.port, SharedConfig.currentProxy.username, SharedConfig.currentProxy.password, SharedConfig.currentProxy.secret);
+                }
                 NotificationCenter.getGlobalInstance().removeObserver(ProxyListActivity.this, NotificationCenter.proxySettingsChanged);
                 NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
                 NotificationCenter.getGlobalInstance().addObserver(ProxyListActivity.this, NotificationCenter.proxySettingsChanged);
@@ -472,8 +507,9 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 editor.putString("proxy_user", info.username);
                 editor.putInt("proxy_port", info.port);
                 editor.putString("proxy_secret", info.secret);
+                editor.putString("proxy_awg_id", info.isAmneziaWG ? info.awgConfigId : "");
                 editor.putBoolean("proxy_enabled", useProxySettings);
-                if (!info.secret.isEmpty()) {
+                if (!info.secret.isEmpty() || info.isAmneziaWG) {
                     useProxyForCalls = false;
                     editor.putBoolean("proxy_enabled_calls", false);
                 }
@@ -493,7 +529,18 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                     TextCheckCell textCheckCell = (TextCheckCell) holder.itemView;
                     textCheckCell.setChecked(true);
                 }
-                ConnectionsManager.setProxySettings(useProxySettings, SharedConfig.currentProxy.address, SharedConfig.currentProxy.port, SharedConfig.currentProxy.username, SharedConfig.currentProxy.password, SharedConfig.currentProxy.secret);
+                if (info.isAmneziaWG) {
+                    Intent vpnIntent = VpnService.prepare(getParentActivity());
+                    if (vpnIntent != null) {
+                        startActivityForResult(vpnIntent, 100);
+                    } else {
+                        AmneziaManager.startVpn(getParentActivity(), info);
+                    }
+                    ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+                } else {
+                    AmneziaManager.stopVpn(getParentActivity());
+                    ConnectionsManager.setProxySettings(useProxySettings, SharedConfig.currentProxy.address, SharedConfig.currentProxy.port, SharedConfig.currentProxy.username, SharedConfig.currentProxy.password, SharedConfig.currentProxy.secret);
+                }
             } else if (position == proxyAddRow) {
                 presentFragment(new ProxySettingsActivity());
             } else if (position == deleteAllRow) {
@@ -613,6 +660,70 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
             }
         });
 
+        itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                int position = viewHolder.getAdapterPosition();
+                if (position >= proxyStartRow && position < proxyEndRow) {
+                    return makeMovementFlags(0, ItemTouchHelper.LEFT);
+                }
+                return 0;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                if (position >= proxyStartRow && position < proxyEndRow) {
+                    SharedConfig.ProxyInfo info = proxyList.get(position - proxyStartRow);
+                    
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+                    builder.setMessage(getString(R.string.DeleteProxyConfirm));
+                    builder.setNegativeButton(getString(R.string.Cancel), (dialog, which) -> listAdapter.notifyItemChanged(position));
+                    builder.setTitle(getString(R.string.DeleteProxyTitle));
+                    builder.setPositiveButton(getString(R.string.Delete), (dialog, which) -> {
+                        SharedConfig.deleteProxy(info);
+                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+                    });
+                    builder.setOnCancelListener(dialog -> listAdapter.notifyItemChanged(position));
+                    AlertDialog dialog = builder.create();
+                    showDialog(dialog);
+                    TextView button = (TextView) dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                    if (button != null) {
+                        button.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+                    }
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    View itemView = viewHolder.itemView;
+                    int height = itemView.getBottom() - itemView.getTop();
+
+                    Paint paint = new Paint();
+                    paint.setColor(Theme.getColor(Theme.key_text_RedRegular));
+                    c.drawRect((float) itemView.getRight() + dX, (float) itemView.getTop(), (float) itemView.getRight(), (float) itemView.getBottom(), paint);
+
+                    Drawable deleteIcon = getParentActivity().getResources().getDrawable(R.drawable.msg_delete).mutate();
+                    deleteIcon.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
+                    int iconSize = AndroidUtilities.dp(24);
+                    int top = itemView.getTop() + (height - iconSize) / 2;
+                    int right = itemView.getRight() - AndroidUtilities.dp(16);
+                    int left = right - iconSize;
+                    int bottom = top + iconSize;
+                    deleteIcon.setBounds(left, top, right, bottom);
+                    deleteIcon.draw(c);
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
+        });
+        itemTouchHelper.attachToRecyclerView(listView);
+
         return fragmentView;
     }
 
@@ -716,6 +827,15 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         checkProxyList();
         if (notify && listAdapter != null) {
             listAdapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 100 && resultCode == Activity.RESULT_OK) {
+            if (SharedConfig.currentProxy != null && SharedConfig.currentProxy.isAmneziaWG) {
+                AmneziaManager.startVpn(getParentActivity(), SharedConfig.currentProxy);
+            }
         }
     }
 
@@ -1037,7 +1157,6 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
 
         @Override
         public long getItemId(int position) {
-            // Random stable ids, could be anything non-repeating
             if (position == useProxyShadowRow) {
                 return -1;
             } else if (position == proxyShadowRow) {
