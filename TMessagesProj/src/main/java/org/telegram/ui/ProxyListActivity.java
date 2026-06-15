@@ -143,29 +143,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
 
         private int color;
 
-        private FrameLayout contentLayout;
-        private LinearLayout actionsLayout;
-        private FrameLayout deleteButton, shareButton, qrButton;
-
         public TextDetailProxyCell(Context context) {
             super(context);
-
-            actionsLayout = new LinearLayout(context);
-            actionsLayout.setOrientation(LinearLayout.HORIZONTAL);
-            addView(actionsLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.RIGHT));
-
-            qrButton = createActionButton(context, 0xff34c759, R.drawable.msg_qrcode);
-            actionsLayout.addView(qrButton, LayoutHelper.createLinear(72, LayoutHelper.MATCH_PARENT));
-
-            shareButton = createActionButton(context, 0xffffcc00, R.drawable.msg_share);
-            actionsLayout.addView(shareButton, LayoutHelper.createLinear(72, LayoutHelper.MATCH_PARENT));
-
-            deleteButton = createActionButton(context, 0xffff3b30, R.drawable.msg_delete);
-            actionsLayout.addView(deleteButton, LayoutHelper.createLinear(72, LayoutHelper.MATCH_PARENT));
-
-            contentLayout = new FrameLayout(context);
-            contentLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-            addView(contentLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
             textView = new TextView(context);
             textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -175,7 +154,7 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
             textView.setSingleLine(true);
             textView.setEllipsize(TextUtils.TruncateAt.END);
             textView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
-            contentLayout.addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, (LocaleController.isRTL ? 56 : 21), 10, (LocaleController.isRTL ? 21 : 56), 0));
+            addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, (LocaleController.isRTL ? 56 : 21), 10, (LocaleController.isRTL ? 21 : 56), 0));
 
             valueTextView = new TextView(context);
             valueTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -186,108 +165,23 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
             valueTextView.setCompoundDrawablePadding(AndroidUtilities.dp(6));
             valueTextView.setEllipsize(TextUtils.TruncateAt.END);
             valueTextView.setPadding(0, 0, 0, 0);
-            contentLayout.addView(valueTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, (LocaleController.isRTL ? 56 : 21), 35, (LocaleController.isRTL ? 21 : 56), 0));
+            addView(valueTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, (LocaleController.isRTL ? 56 : 21), 35, (LocaleController.isRTL ? 21 : 56), 0));
 
             checkImageView = new ImageView(context);
             checkImageView.setImageResource(R.drawable.msg_info);
             checkImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3), PorterDuff.Mode.MULTIPLY));
             checkImageView.setScaleType(ImageView.ScaleType.CENTER);
             checkImageView.setContentDescription(getString(R.string.Edit));
-            contentLayout.addView(checkImageView, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, 8, 8, 8, 0));
+            addView(checkImageView, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, 8, 8, 8, 0));
             checkImageView.setOnClickListener(v -> presentFragment(new ProxySettingsActivity(currentInfo)));
 
             checkBox = new CheckBox2(context, 21);
             checkBox.setColor(Theme.key_checkbox, Theme.key_radioBackground, Theme.key_checkboxCheck);
             checkBox.setDrawBackgroundAsArc(14);
             checkBox.setVisibility(GONE);
-            contentLayout.addView(checkBox, LayoutHelper.createFrame(24, 24, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 16, 0, 8, 0));
+            addView(checkBox, LayoutHelper.createFrame(24, 24, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 16, 0, 8, 0));
 
             setWillNotDraw(false);
-            
-            qrButton.setOnClickListener(v -> triggerAction(2));
-            shareButton.setOnClickListener(v -> triggerAction(1));
-            deleteButton.setOnClickListener(v -> triggerAction(0));
-        }
-
-        private FrameLayout createActionButton(Context context, int color, int iconRes) {
-            FrameLayout frameLayout = new FrameLayout(context);
-            frameLayout.setBackgroundColor(color);
-            ImageView imageView = new ImageView(context);
-            imageView.setImageResource(iconRes);
-            imageView.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
-            imageView.setScaleType(ImageView.ScaleType.CENTER);
-            frameLayout.addView(imageView, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
-            return frameLayout;
-        }
-
-        private void triggerAction(int type) {
-            if (currentInfo == null) return;
-            int position = listView.getChildAdapterPosition(this);
-            if (position == RecyclerView.NO_POSITION) return;
-
-            String link = currentInfo.getLink();
-            if (currentInfo.isAmneziaWG) {
-                AwgCacheManager cacheManager = new AwgCacheManager(getParentActivity());
-                AwgConfig activeConfig = null;
-                for (AwgConfig c : cacheManager.getAllConfigs()) {
-                    if (c.getId().equals(currentInfo.awgConfigId)) {
-                        activeConfig = c;
-                        break;
-                    }
-                }
-                if (activeConfig != null) {
-                    StringBuilder sb = new StringBuilder("tg://amnezia?server=" + currentInfo.address + "&port=" + currentInfo.port);
-                    String[] lines = activeConfig.getConfigText().split("\n");
-                    for (String line : lines) {
-                        line = line.trim();
-                        try {
-                            if (line.startsWith("PrivateKey")) sb.append("&pc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("PublicKey")) sb.append("&pk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("PresharedKey")) sb.append("&psk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("Address")) sb.append("&addr=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("DNS")) sb.append("&dns=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("Jc")) sb.append("&jc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("Jmin")) sb.append("&jmin=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("Jmax")) sb.append("&jmax=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("S1")) sb.append("&s1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("S2")) sb.append("&s2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("S3")) sb.append("&s3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("S4")) sb.append("&s4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("H1")) sb.append("&h1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("H2")) sb.append("&h2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("H3")) sb.append("&h3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("H4")) sb.append("&h4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("I1")) sb.append("&i1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("I2")) sb.append("&i2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("I3")) sb.append("&i3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("I4")) sb.append("&i4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("I5")) sb.append("&i5=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                            else if (line.startsWith("PersistentKeepalive")) sb.append("&ka=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                        } catch (Exception ignore) {}
-                    }
-                    link = sb.toString();
-                }
-            }
-
-            if (type == 0) {
-                SharedConfig.deleteProxy(currentInfo);
-                openedItems.remove(currentInfo);
-                listAdapter.notifyItemRemoved(position);
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
-            } else if (type == 1) {
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, link);
-                getParentActivity().startActivity(Intent.createChooser(shareIntent, getString(R.string.ShareLink)));
-                openedItems.remove(currentInfo);
-                listAdapter.notifyItemChanged(position);
-            } else if (type == 2) {
-                QRCodeBottomSheet qrCodeBottomSheet = new QRCodeBottomSheet(getParentActivity(), getString(R.string.ShareQrCode), link, getString(R.string.QRCodeLinkHelpProxy), true);
-                qrCodeBottomSheet.setCenterImage(SvgHelper.getBitmap(AndroidUtilities.readRes(R.raw.qr_dog), AndroidUtilities.dp(60), AndroidUtilities.dp(60), false));
-                showDialog(qrCodeBottomSheet);
-                openedItems.remove(currentInfo);
-                listAdapter.notifyItemChanged(position);
-            }
         }
 
         @Override
@@ -710,6 +604,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         shareMenuItem.setContentDescription(getString(R.string.StickersShare));
         deleteMenuItem = actionMode.addItemWithWidth(MENU_DELETE, R.drawable.msg_delete, AndroidUtilities.dp(54));
         deleteMenuItem.setContentDescription(getString(R.string.Delete));
+        ActionBarMenuItem qrMenuItem = actionMode.addItemWithWidth(MENU_SCAN, R.drawable.msg_qrcode, AndroidUtilities.dp(54));
+        qrMenuItem.setContentDescription(getString(R.string.GetQRCode));
 
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
@@ -723,14 +619,67 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                         }
                         break;
                     case MENU_SCAN:
-                        CameraScanActivity activity = new CameraScanActivity(CameraScanActivity.TYPE_QR);
-                        activity.setDelegate(new CameraScanActivity.CameraScanActivityDelegate() {
-                            @Override
-                            public void didFindQr(String text) {
-                                AndroidUtilities.handleProxyIntent(getParentActivity(), new Intent(Intent.ACTION_VIEW, Uri.parse(text)), true);
+                        if (selectedItems.isEmpty()) {
+                            CameraScanActivity activity = new CameraScanActivity(CameraScanActivity.TYPE_QR);
+                            activity.setDelegate(new CameraScanActivity.CameraScanActivityDelegate() {
+                                @Override
+                                public void didFindQr(String text) {
+                                    AndroidUtilities.handleProxyIntent(getParentActivity(), new Intent(Intent.ACTION_VIEW, Uri.parse(text)), true);
+                                }
+                            });
+                            presentFragment(activity);
+                        } else if (selectedItems.size() == 1) {
+                            SharedConfig.ProxyInfo info = selectedItems.get(0);
+                            String link = info.getLink();
+                            if (info.isAmneziaWG) {
+                                AwgCacheManager cacheManager = new AwgCacheManager(getParentActivity());
+                                AwgConfig activeConfig = null;
+                                for (AwgConfig c : cacheManager.getAllConfigs()) {
+                                    if (c.getId().equals(info.awgConfigId)) {
+                                        activeConfig = c;
+                                        break;
+                                    }
+                                }
+                                if (activeConfig != null) {
+                                    StringBuilder sb = new StringBuilder("tg://amnezia?server=" + info.address + "&port=" + info.port);
+                                    String[] lines = activeConfig.getConfigText().split("\n");
+                                    for (String line : lines) {
+                                        line = line.trim();
+                                        try {
+                                            if (line.startsWith("PrivateKey")) sb.append("&pc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PublicKey")) sb.append("&pk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PresharedKey")) sb.append("&psk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Address")) sb.append("&addr=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("DNS")) sb.append("&dns=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jc")) sb.append("&jc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jmin")) sb.append("&jmin=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jmax")) sb.append("&jmax=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S1")) sb.append("&s1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S2")) sb.append("&s2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S3")) sb.append("&s3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S4")) sb.append("&s4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H1")) sb.append("&h1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H2")) sb.append("&h2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H3")) sb.append("&h3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H4")) sb.append("&h4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I1")) sb.append("&i1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I2")) sb.append("&i2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I3")) sb.append("&i3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I4")) sb.append("&i4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I5")) sb.append("&i5=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PersistentKeepalive")) sb.append("&ka=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                        } catch (Exception ignore) {}
+                                    }
+                                    link = sb.toString();
+                                }
                             }
-                        });
-                        presentFragment(activity);
+                            QRCodeBottomSheet qrCodeBottomSheet = new QRCodeBottomSheet(getParentActivity(), getString(R.string.ShareQrCode), link, getString(R.string.QRCodeLinkHelpProxy), true);
+                            qrCodeBottomSheet.setCenterImage(SvgHelper.getBitmap(AndroidUtilities.readRes(R.raw.qr_dog), AndroidUtilities.dp(60), AndroidUtilities.dp(60), false));
+                            showDialog(qrCodeBottomSheet);
+                        }
+                        if (listAdapter != null) {
+                            listAdapter.clearSelected();
+                        }
                         break;
                     case MENU_DELETE:
                         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
@@ -808,85 +757,9 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 int position = viewHolder.getAdapterPosition();
                 if (position >= proxyStartRow && position < proxyEndRow) {
                     SharedConfig.ProxyInfo info = proxyList.get(position - proxyStartRow);
-                    
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                    builder.setTitle(getString(R.string.ProxySettings));
-                    
-                    CharSequence[] items = new CharSequence[] {
-                        getString(R.string.Delete),
-                        getString(R.string.ShareFile),
-                        getString(R.string.GetQRCode)
-                    };
-                    int[] icons = new int[] {
-                        R.drawable.msg_delete,
-                        R.drawable.msg_share,
-                        R.drawable.msg_qrcode
-                    };
-                    
-                    builder.setItems(items, icons, (dialog, which) -> {
-                        String link = info.getLink();
-                        if (info.isAmneziaWG) {
-                            AwgCacheManager cacheManager = new AwgCacheManager(getParentActivity());
-                            AwgConfig activeConfig = null;
-                            for (AwgConfig c : cacheManager.getAllConfigs()) {
-                                if (c.getId().equals(info.awgConfigId)) {
-                                    activeConfig = c;
-                                    break;
-                                }
-                            }
-                            if (activeConfig != null) {
-                                StringBuilder sb = new StringBuilder("tg://amnezia?server=" + info.address + "&port=" + info.port);
-                                String[] lines = activeConfig.getConfigText().split("\n");
-                                for (String line : lines) {
-                                    line = line.trim();
-                                    try {
-                                        if (line.startsWith("PrivateKey")) sb.append("&pc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("PublicKey")) sb.append("&pk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("PresharedKey")) sb.append("&psk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("Address")) sb.append("&addr=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("DNS")) sb.append("&dns=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("Jc")) sb.append("&jc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("Jmin")) sb.append("&jmin=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("Jmax")) sb.append("&jmax=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("S1")) sb.append("&s1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("S2")) sb.append("&s2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("S3")) sb.append("&s3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("S4")) sb.append("&s4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("H1")) sb.append("&h1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("H2")) sb.append("&h2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("H3")) sb.append("&h3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("H4")) sb.append("&h4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("I1")) sb.append("&i1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("I2")) sb.append("&i2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("I3")) sb.append("&i3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("I4")) sb.append("&i4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("I5")) sb.append("&i5=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                        else if (line.startsWith("PersistentKeepalive")) sb.append("&ka=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
-                                    } catch (Exception ignore) {}
-                                }
-                                link = sb.toString();
-                            }
-                        }
-
-                        if (which == 0) {
-                            SharedConfig.deleteProxy(info);
-                            listAdapter.notifyItemRemoved(position);
-                            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
-                        } else if (which == 1) {
-                            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                            shareIntent.setType("text/plain");
-                            shareIntent.putExtra(Intent.EXTRA_TEXT, link);
-                            getParentActivity().startActivity(Intent.createChooser(shareIntent, getString(R.string.ShareLink)));
-                            listAdapter.notifyItemChanged(position);
-                        } else if (which == 2) {
-                            QRCodeBottomSheet qrCodeBottomSheet = new QRCodeBottomSheet(getParentActivity(), getString(R.string.ShareQrCode), link, getString(R.string.QRCodeLinkHelpProxy), true);
-                            qrCodeBottomSheet.setCenterImage(SvgHelper.getBitmap(AndroidUtilities.readRes(R.raw.qr_dog), AndroidUtilities.dp(60), AndroidUtilities.dp(60), false));
-                            showDialog(qrCodeBottomSheet);
-                            listAdapter.notifyItemChanged(position);
-                        }
-                    });
-                    builder.setOnCancelListener(dialog -> listAdapter.notifyItemChanged(position));
-                    showDialog(builder.create());
+                    SharedConfig.deleteProxy(info);
+                    updateRows(true);
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
                 }
             }
 
@@ -895,52 +768,19 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     View itemView = viewHolder.itemView;
                     int height = itemView.getBottom() - itemView.getTop();
-                    
-                    float buttonWidth = AndroidUtilities.dp(72);
-                    int rightEdge = itemView.getRight();
-                    
-                    c.save();
-                    c.clipRect(rightEdge + dX, itemView.getTop(), rightEdge, itemView.getBottom());
 
                     Paint paint = new Paint();
-                    
-                    // QR (Green)
-                    paint.setColor(0xff34c759);
-                    c.drawRect(rightEdge - buttonWidth * 3, itemView.getTop(), rightEdge - buttonWidth * 2, itemView.getBottom(), paint);
-                    
-                    // Share (Yellow)
-                    paint.setColor(0xffffcc00);
-                    c.drawRect(rightEdge - buttonWidth * 2, itemView.getTop(), rightEdge - buttonWidth, itemView.getBottom(), paint);
-                    
-                    // Delete (Red)
                     paint.setColor(0xffff3b30);
-                    c.drawRect(rightEdge - buttonWidth, itemView.getTop(), rightEdge, itemView.getBottom(), paint);
+                    c.drawRect((float) itemView.getRight() + dX, (float) itemView.getTop(), (float) itemView.getRight(), (float) itemView.getBottom(), paint);
 
                     int iconSize = AndroidUtilities.dp(24);
                     int iconTop = itemView.getTop() + (height - iconSize) / 2;
 
-                    // QR Icon
-                    Drawable qrIcon = itemView.getContext().getResources().getDrawable(R.drawable.msg_qrcode).mutate();
-                    qrIcon.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
-                    int qrLeft = rightEdge - (int)(buttonWidth * 2.5f) - iconSize / 2;
-                    qrIcon.setBounds(qrLeft, iconTop, qrLeft + iconSize, iconTop + iconSize);
-                    qrIcon.draw(c);
-
-                    // Share Icon
-                    Drawable shareIcon = itemView.getContext().getResources().getDrawable(R.drawable.msg_share).mutate();
-                    shareIcon.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
-                    int shareLeft = rightEdge - (int)(buttonWidth * 1.5f) - iconSize / 2;
-                    shareIcon.setBounds(shareLeft, iconTop, shareLeft + iconSize, iconTop + iconSize);
-                    shareIcon.draw(c);
-
-                    // Delete Icon
                     Drawable deleteIcon = itemView.getContext().getResources().getDrawable(R.drawable.msg_delete).mutate();
                     deleteIcon.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
-                    int deleteLeft = rightEdge - (int)(buttonWidth * 0.5f) - iconSize / 2;
+                    int deleteLeft = itemView.getRight() - AndroidUtilities.dp(16) - iconSize;
                     deleteIcon.setBounds(deleteLeft, iconTop, deleteLeft + iconSize, iconTop + iconSize);
                     deleteIcon.draw(c);
-                    
-                    c.restore();
                 }
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
@@ -1170,12 +1010,12 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
         private final static int VIEW_TYPE_SHADOW = 0,
-            VIEW_TYPE_TEXT_SETTING = 1,
-            VIEW_TYPE_HEADER = 2,
-            VIEW_TYPE_TEXT_CHECK = 3,
-            VIEW_TYPE_INFO = 4,
-            VIEW_TYPE_PROXY_DETAIL = 5,
-            VIEW_TYPE_SLIDE_CHOOSER = 6;
+                VIEW_TYPE_TEXT_SETTING = 1,
+                VIEW_TYPE_HEADER = 2,
+                VIEW_TYPE_TEXT_CHECK = 3,
+                VIEW_TYPE_INFO = 4,
+                VIEW_TYPE_PROXY_DETAIL = 5,
+                VIEW_TYPE_SLIDE_CHOOSER = 6;
 
         public static final int PAYLOAD_CHECKED_CHANGED = 0;
         public static final int PAYLOAD_SELECTION_CHANGED = 1;
@@ -1280,7 +1120,7 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                     cell.setChecked(SharedConfig.currentProxy == info);
                     cell.setItemSelected(selectedItems.contains(proxyList.get(position - proxyStartRow)), false);
                     cell.setSelectionEnabled(!selectedItems.isEmpty(), false);
-                    cell.contentLayout.setTranslationX(openedItems.contains(info) ? -AndroidUtilities.dp(72 * 3) : 0);
+                    //cell.contentLayout.setTranslationX(openedItems.contains(info) ? -AndroidUtilities.dp(72 * 3) : 0);
                     break;
                 }
                 case VIEW_TYPE_SLIDE_CHOOSER: {
