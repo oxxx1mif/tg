@@ -41,6 +41,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import android.net.Uri;
 import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -142,6 +143,7 @@ public class ProxySettingsActivity extends BaseFragment {
     private boolean addingNewProxy;
     private SharedConfig.ProxyInfo currentProxyInfo;
     private boolean ignoreOnTextChange;
+    private Uri initialUri;
 
     private static final int done_button = 1;
 
@@ -154,6 +156,30 @@ public class ProxySettingsActivity extends BaseFragment {
     public ProxySettingsActivity(SharedConfig.ProxyInfo proxyInfo) {
         super();
         currentProxyInfo = proxyInfo;
+    }
+
+    public ProxySettingsActivity(Uri uri) {
+        super();
+        currentProxyInfo = new SharedConfig.ProxyInfo("", 1080, "", "", "");
+        addingNewProxy = true;
+        initialUri = uri;
+        parseUri(uri);
+    }
+
+    private void parseUri(Uri uri) {
+        try {
+            currentProxyInfo.address = uri.getQueryParameter("server");
+            currentProxyInfo.port = Utilities.parseInt(uri.getQueryParameter("port"));
+            currentProxyInfo.username = uri.getQueryParameter("user");
+            currentProxyInfo.password = uri.getQueryParameter("pass");
+            currentProxyInfo.secret = uri.getQueryParameter("secret");
+            
+            String awg = uri.getQueryParameter("awg");
+            if ("1".equals(awg) || uri.toString().startsWith("tg://amnezia") || uri.toString().startsWith("tg:amnezia")) {
+                currentProxyInfo.isAmneziaWG = true;
+            }
+
+        } catch (Exception ignore) {}
     }
 
     private ClipboardManager.OnPrimaryClipChangedListener clipChangedListener = this::updatePasteCell;
@@ -482,6 +508,33 @@ public class ProxySettingsActivity extends BaseFragment {
             });
         }
 
+        if (initialUri != null) {
+            try {
+                if (initialUri.getQueryParameter("pc") != null) inputFields[FIELD_AWG_PRIVKEY].setText(initialUri.getQueryParameter("pc"));
+                if (initialUri.getQueryParameter("pk") != null) inputFields[FIELD_AWG_PUBKEY].setText(initialUri.getQueryParameter("pk"));
+                if (initialUri.getQueryParameter("psk") != null) inputFields[FIELD_AWG_PRESHAREDKEY].setText(initialUri.getQueryParameter("psk"));
+                if (initialUri.getQueryParameter("addr") != null) inputFields[FIELD_AWG_ADDRESS].setText(initialUri.getQueryParameter("addr"));
+                if (initialUri.getQueryParameter("dns") != null) inputFields[FIELD_AWG_DNS].setText(initialUri.getQueryParameter("dns"));
+                if (initialUri.getQueryParameter("jc") != null) inputFields[FIELD_AWG_JC].setText(initialUri.getQueryParameter("jc"));
+                if (initialUri.getQueryParameter("jmin") != null) inputFields[FIELD_AWG_JMIN].setText(initialUri.getQueryParameter("jmin"));
+                if (initialUri.getQueryParameter("jmax") != null) inputFields[FIELD_AWG_JMAX].setText(initialUri.getQueryParameter("jmax"));
+                if (initialUri.getQueryParameter("s1") != null) inputFields[FIELD_AWG_S1].setText(initialUri.getQueryParameter("s1"));
+                if (initialUri.getQueryParameter("s2") != null) inputFields[FIELD_AWG_S2].setText(initialUri.getQueryParameter("s2"));
+                if (initialUri.getQueryParameter("s3") != null) inputFields[FIELD_AWG_S3].setText(initialUri.getQueryParameter("s3"));
+                if (initialUri.getQueryParameter("s4") != null) inputFields[FIELD_AWG_S4].setText(initialUri.getQueryParameter("s4"));
+                if (initialUri.getQueryParameter("h1") != null) inputFields[FIELD_AWG_H1].setText(initialUri.getQueryParameter("h1"));
+                if (initialUri.getQueryParameter("h2") != null) inputFields[FIELD_AWG_H2].setText(initialUri.getQueryParameter("h2"));
+                if (initialUri.getQueryParameter("h3") != null) inputFields[FIELD_AWG_H3].setText(initialUri.getQueryParameter("h3"));
+                if (initialUri.getQueryParameter("h4") != null) inputFields[FIELD_AWG_H4].setText(initialUri.getQueryParameter("h4"));
+                if (initialUri.getQueryParameter("i1") != null) inputFields[FIELD_AWG_I1].setText(initialUri.getQueryParameter("i1"));
+                if (initialUri.getQueryParameter("i2") != null) inputFields[FIELD_AWG_I2].setText(initialUri.getQueryParameter("i2"));
+                if (initialUri.getQueryParameter("i3") != null) inputFields[FIELD_AWG_I3].setText(initialUri.getQueryParameter("i3"));
+                if (initialUri.getQueryParameter("i4") != null) inputFields[FIELD_AWG_I4].setText(initialUri.getQueryParameter("i4"));
+                if (initialUri.getQueryParameter("i5") != null) inputFields[FIELD_AWG_I5].setText(initialUri.getQueryParameter("i5"));
+                if (initialUri.getQueryParameter("ka") != null) inputFields[FIELD_AWG_KEEPALIVE].setText(initialUri.getQueryParameter("ka"));
+            } catch (Exception ignore) {}
+        }
+
         for (int i = 0; i < 3; i++) {
             bottomCells[i] = new TextInfoPrivacyCell(context);
             bottomCells[i].setBackground(Theme.getThemedDrawableByKey(context, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
@@ -503,9 +556,11 @@ public class ProxySettingsActivity extends BaseFragment {
         pasteCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         pasteCell.setOnClickListener(v -> {
             if (pasteType != -1) {
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 27; i++) {
                     if (pasteType == TYPE_SOCKS5 && i == FIELD_SECRET) continue;
                     if (pasteType == TYPE_MTPROTO && (i == FIELD_USER || i == FIELD_PASSWORD)) continue;
+                    if (pasteType == TYPE_MTPROTO && i >= FIELD_AWG_PRIVKEY) continue;
+                    if (pasteType == TYPE_SOCKS5 && i >= FIELD_AWG_PRIVKEY) continue;
                     if (pasteFields[i] != null) {
                         try {
                             inputFields[i].setText(URLDecoder.decode(pasteFields[i], "UTF-8"));
@@ -519,9 +574,10 @@ public class ProxySettingsActivity extends BaseFragment {
                 inputFields[0].setSelection(inputFields[0].length());
                 setProxyType(pasteType, true, () -> {
                     AndroidUtilities.hideKeyboard(inputFieldsContainer.findFocus());
-                    for (int i = 0; i < 5; i++) {
-                        if (pasteType == TYPE_SOCKS5 && i != FIELD_SECRET) continue;
-                        if (pasteType == TYPE_MTPROTO && i != FIELD_USER && i != FIELD_PASSWORD) continue;
+                    for (int i = 0; i < 27; i++) {
+                        if (pasteType == TYPE_SOCKS5 && (i == FIELD_IP || i == FIELD_PORT || i == FIELD_USER || i == FIELD_PASSWORD)) continue;
+                        if (pasteType == TYPE_MTPROTO && (i == FIELD_IP || i == FIELD_PORT || i == FIELD_SECRET)) continue;
+                        if (pasteType == TYPE_AMNEZIA && (i == FIELD_IP || i == FIELD_PORT || (i >= FIELD_AWG_PRIVKEY && i <= FIELD_AWG_KEEPALIVE))) continue;
                         inputFields[i].setText(null);
                     }
                 });
@@ -556,7 +612,6 @@ public class ProxySettingsActivity extends BaseFragment {
         shareCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         linearLayout2.addView(shareCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         shareCell.setOnClickListener(v -> {
-            if (currentType == TYPE_AMNEZIA) return;
             StringBuilder params = new StringBuilder();
             String address = inputFields[FIELD_IP].getText().toString();
             String password = inputFields[FIELD_PASSWORD].getText().toString();
@@ -564,16 +619,48 @@ public class ProxySettingsActivity extends BaseFragment {
             String port = inputFields[FIELD_PORT].getText().toString();
             String secret = inputFields[FIELD_SECRET].getText().toString();
             String url;
+            String link;
             try {
                 if (!TextUtils.isEmpty(address)) params.append("server=").append(URLEncoder.encode(address, "UTF-8"));
                 if (!TextUtils.isEmpty(port)) {
                     if (params.length() != 0) params.append("&");
                     params.append("port=").append(URLEncoder.encode(port, "UTF-8"));
                 }
-                if (currentType == TYPE_MTPROTO) {
+                
+                if (currentType == TYPE_AMNEZIA) {
+                    url = "https://t.me/proxy?awg=1";
+                    if (params.length() != 0) url += "&" + params.toString();
+                    
+                    StringBuilder awgParams = new StringBuilder();
+                    if (inputFields[FIELD_AWG_PRIVKEY].length() != 0) awgParams.append("&pc=").append(URLEncoder.encode(inputFields[FIELD_AWG_PRIVKEY].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_PUBKEY].length() != 0) awgParams.append("&pk=").append(URLEncoder.encode(inputFields[FIELD_AWG_PUBKEY].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_PRESHAREDKEY].length() != 0) awgParams.append("&psk=").append(URLEncoder.encode(inputFields[FIELD_AWG_PRESHAREDKEY].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_ADDRESS].length() != 0) awgParams.append("&addr=").append(URLEncoder.encode(inputFields[FIELD_AWG_ADDRESS].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_DNS].length() != 0) awgParams.append("&dns=").append(URLEncoder.encode(inputFields[FIELD_AWG_DNS].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_JC].length() != 0) awgParams.append("&jc=").append(URLEncoder.encode(inputFields[FIELD_AWG_JC].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_JMIN].length() != 0) awgParams.append("&jmin=").append(URLEncoder.encode(inputFields[FIELD_AWG_JMIN].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_JMAX].length() != 0) awgParams.append("&jmax=").append(URLEncoder.encode(inputFields[FIELD_AWG_JMAX].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_S1].length() != 0) awgParams.append("&s1=").append(URLEncoder.encode(inputFields[FIELD_AWG_S1].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_S2].length() != 0) awgParams.append("&s2=").append(URLEncoder.encode(inputFields[FIELD_AWG_S2].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_S3].length() != 0) awgParams.append("&s3=").append(URLEncoder.encode(inputFields[FIELD_AWG_S3].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_S4].length() != 0) awgParams.append("&s4=").append(URLEncoder.encode(inputFields[FIELD_AWG_S4].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_H1].length() != 0) awgParams.append("&h1=").append(URLEncoder.encode(inputFields[FIELD_AWG_H1].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_H2].length() != 0) awgParams.append("&h2=").append(URLEncoder.encode(inputFields[FIELD_AWG_H2].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_H3].length() != 0) awgParams.append("&h3=").append(URLEncoder.encode(inputFields[FIELD_AWG_H3].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_H4].length() != 0) awgParams.append("&h4=").append(URLEncoder.encode(inputFields[FIELD_AWG_H4].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_I1].length() != 0) awgParams.append("&i1=").append(URLEncoder.encode(inputFields[FIELD_AWG_I1].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_I2].length() != 0) awgParams.append("&i2=").append(URLEncoder.encode(inputFields[FIELD_AWG_I2].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_I3].length() != 0) awgParams.append("&i3=").append(URLEncoder.encode(inputFields[FIELD_AWG_I3].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_I4].length() != 0) awgParams.append("&i4=").append(URLEncoder.encode(inputFields[FIELD_AWG_I4].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_I5].length() != 0) awgParams.append("&i5=").append(URLEncoder.encode(inputFields[FIELD_AWG_I5].getText().toString(), "UTF-8"));
+                    if (inputFields[FIELD_AWG_KEEPALIVE].length() != 0) awgParams.append("&ka=").append(URLEncoder.encode(inputFields[FIELD_AWG_KEEPALIVE].getText().toString(), "UTF-8"));
+                    
+                    link = url + awgParams.toString();
+                } else if (currentType == TYPE_MTPROTO) {
                     url = "https://t.me/proxy?";
                     if (params.length() != 0) params.append("&");
                     params.append("secret=").append(URLEncoder.encode(secret, "UTF-8"));
+                    link = url + params.toString();
                 } else {
                     url = "https://t.me/socks?";
                     if (!TextUtils.isEmpty(user)) {
@@ -584,10 +671,11 @@ public class ProxySettingsActivity extends BaseFragment {
                         if (params.length() != 0) params.append("&");
                         params.append("pass=").append(URLEncoder.encode(password, "UTF-8"));
                     }
+                    link = url + params.toString();
                 }
             } catch (Exception ignore) { return; }
             if (params.length() == 0) return;
-            String link = url + params.toString();
+
             QRCodeBottomSheet alert = new QRCodeBottomSheet(context, LocaleController.getString(R.string.ShareQrCode), link, LocaleController.getString(R.string.QRCodeLinkHelpProxy), true);
             Bitmap icon = SvgHelper.getBitmap(AndroidUtilities.readRes(R.raw.qr_dog), AndroidUtilities.dp(60), AndroidUtilities.dp(60), false);
             alert.setCenterImage(icon);
@@ -638,7 +726,7 @@ public class ProxySettingsActivity extends BaseFragment {
 
         pasteType = -1;
         pasteString = clipText;
-        pasteFields = new String[5];
+        pasteFields = new String[27];
         if (clipText != null) {
             String[] params = null;
             final String[] socksStrings = {"t.me/socks?", "tg://socks?"};
@@ -652,12 +740,23 @@ public class ProxySettingsActivity extends BaseFragment {
             }
 
             if (params == null) {
-                final String[] proxyStrings = {"t.me/proxy?", "tg://proxy?"};
+                final String[] proxyStrings = {"t.me/proxy?", "tg://proxy?", "t.me/amnezia?", "tg://amnezia?"};
                 for (int i = 0; i < proxyStrings.length; i++) {
                     final int index = clipText.indexOf(proxyStrings[i]);
                     if (index >= 0) {
-                        pasteType = TYPE_MTPROTO;
                         params = clipText.substring(index + proxyStrings[i].length()).split("&");
+                        boolean isAwg = false;
+                        for (String param : params) {
+                            if (param.toLowerCase().startsWith("awg=1")) {
+                                isAwg = true;
+                                break;
+                            }
+                        }
+                        if (isAwg || proxyStrings[i].contains("amnezia")) {
+                            pasteType = TYPE_AMNEZIA;
+                        } else {
+                            pasteType = TYPE_MTPROTO;
+                        }
                         break;
                     }
                 }
@@ -667,12 +766,36 @@ public class ProxySettingsActivity extends BaseFragment {
                 for (int i = 0; i < params.length; i++) {
                     final String[] pair = params[i].split("=");
                     if (pair.length != 2) continue;
-                    switch (pair[0].toLowerCase()) {
-                        case "server": pasteFields[FIELD_IP] = pair[1]; break;
-                        case "port": pasteFields[FIELD_PORT] = pair[1]; break;
-                        case "user": if (pasteType == TYPE_SOCKS5) pasteFields[FIELD_USER] = pair[1]; break;
-                        case "pass": if (pasteType == TYPE_SOCKS5) pasteFields[FIELD_PASSWORD] = pair[1]; break;
-                        case "secret": if (pasteType == TYPE_MTPROTO) pasteFields[FIELD_SECRET] = pair[1]; break;
+                    String key = pair[0].toLowerCase();
+                    String val = pair[1];
+                    switch (key) {
+                        case "server": pasteFields[FIELD_IP] = val; break;
+                        case "port": pasteFields[FIELD_PORT] = val; break;
+                        case "user": if (pasteType == TYPE_SOCKS5) pasteFields[FIELD_USER] = val; break;
+                        case "pass": if (pasteType == TYPE_SOCKS5) pasteFields[FIELD_PASSWORD] = val; break;
+                        case "secret": if (pasteType == TYPE_MTPROTO) pasteFields[FIELD_SECRET] = val; break;
+                        case "pc": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_PRIVKEY] = val; break;
+                        case "pk": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_PUBKEY] = val; break;
+                        case "psk": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_PRESHAREDKEY] = val; break;
+                        case "addr": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_ADDRESS] = val; break;
+                        case "dns": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_DNS] = val; break;
+                        case "jc": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_JC] = val; break;
+                        case "jmin": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_JMIN] = val; break;
+                        case "jmax": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_JMAX] = val; break;
+                        case "s1": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_S1] = val; break;
+                        case "s2": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_S2] = val; break;
+                        case "s3": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_S3] = val; break;
+                        case "s4": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_S4] = val; break;
+                        case "h1": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_H1] = val; break;
+                        case "h2": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_H2] = val; break;
+                        case "h3": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_H3] = val; break;
+                        case "h4": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_H4] = val; break;
+                        case "i1": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_I1] = val; break;
+                        case "i2": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_I2] = val; break;
+                        case "i3": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_I3] = val; break;
+                        case "i4": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_I4] = val; break;
+                        case "i5": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_I5] = val; break;
+                        case "ka": if (pasteType == TYPE_AMNEZIA) pasteFields[FIELD_AWG_KEEPALIVE] = val; break;
                     }
                 }
             }

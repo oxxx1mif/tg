@@ -412,6 +412,13 @@ public class SharedConfig {
         }
 
         public String getLink() {
+            if (isAmneziaWG) {
+                StringBuilder url = new StringBuilder("https://t.me/proxy?awg=1");
+                try {
+                    url.append("&server=").append(URLEncoder.encode(address, "UTF-8")).append("&port=").append(port);
+                } catch (Exception ignore) {}
+                return url.toString();
+            }
             StringBuilder url = new StringBuilder(!TextUtils.isEmpty(secret) ? "https://t.me/proxy?" : "https://t.me/socks?");
             try {
                 url.append("server=").append(URLEncoder.encode(address, "UTF-8")).append("&").append("port=").append(port);

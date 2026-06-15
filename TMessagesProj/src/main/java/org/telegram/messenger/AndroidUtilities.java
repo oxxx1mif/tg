@@ -186,6 +186,7 @@ import org.telegram.ui.Components.UndoView;
 import org.telegram.ui.Components.spoilers.SpoilersTextView;
 import org.telegram.ui.DebugRecordingCanvasReplayFragment;
 import org.telegram.ui.LaunchActivity;
+import org.telegram.ui.ProxySettingsActivity;
 import org.telegram.ui.Stories.PeerStoriesView;
 import org.telegram.ui.Stories.StoryMediaAreasView;
 import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
@@ -4613,9 +4614,17 @@ public class AndroidUtilities {
                         }
                     } else if (scheme.equals("tg")) {
                         String url = data.toString();
-                        if (url.startsWith("tg:proxy") || url.startsWith("tg://proxy") || url.startsWith("tg:socks") || url.startsWith("tg://socks")) {
-                            url = url.replace("tg:proxy", "tg://telegram.org").replace("tg://proxy", "tg://telegram.org").replace("tg://socks", "tg://telegram.org").replace("tg:socks", "tg://telegram.org");
+                        if (url.startsWith("tg:proxy") || url.startsWith("tg://proxy") || url.startsWith("tg:socks") || url.startsWith("tg://socks") || url.startsWith("tg://amnezia") || url.startsWith("tg:amnezia")) {
+                            url = url.replace("tg:proxy", "tg://telegram.org").replace("tg://proxy", "tg://telegram.org").replace("tg://socks", "tg://telegram.org").replace("tg:socks", "tg://telegram.org").replace("tg://amnezia", "tg://telegram.org").replace("tg:amnezia","tg://telegram.org");
                             data = Uri.parse(url);
+                            
+                            if ("1".equals(data.getQueryParameter("awg")) || url.contains("tg://amnezia") || url.contains("tg:amnezia")) {
+                                if (invoked && activity instanceof LaunchActivity) {
+                                    ((LaunchActivity) activity).presentFragment(new ProxySettingsActivity(data));
+                                    return true;
+                                }
+                                return true;
+                            }
                             address = data.getQueryParameter("server");
                             if (AndroidUtilities.checkHostForPunycode(address)) {
                                 address = IDN.toASCII(address, IDN.ALLOW_UNASSIGNED);
