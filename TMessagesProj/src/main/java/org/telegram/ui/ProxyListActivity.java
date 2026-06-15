@@ -719,7 +719,50 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                             if (links.length() > 0) {
                                 links.append("\n\n");
                             }
-                            links.append(info.getLink());
+                            String link = info.getLink();
+                            if (info.isAmneziaWG) {
+                                AwgCacheManager cacheManager = new AwgCacheManager(getParentActivity());
+                                AwgConfig activeConfig = null;
+                                for (AwgConfig c : cacheManager.getAllConfigs()) {
+                                    if (c.getId().equals(info.awgConfigId)) {
+                                        activeConfig = c;
+                                        break;
+                                    }
+                                }
+                                if (activeConfig != null) {
+                                    StringBuilder sb = new StringBuilder("tg://amnezia?server=" + info.address + "&port=" + info.port);
+                                    String[] lines = activeConfig.getConfigText().split("\n");
+                                    for (String line : lines) {
+                                        line = line.trim();
+                                        try {
+                                            if (line.startsWith("PrivateKey")) sb.append("&pc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PublicKey")) sb.append("&pk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PresharedKey")) sb.append("&psk=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Address")) sb.append("&addr=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("DNS")) sb.append("&dns=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jc")) sb.append("&jc=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jmin")) sb.append("&jmin=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("Jmax")) sb.append("&jmax=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S1")) sb.append("&s1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S2")) sb.append("&s2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S3")) sb.append("&s3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("S4")) sb.append("&s4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H1")) sb.append("&h1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H2")) sb.append("&h2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H3")) sb.append("&h3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("H4")) sb.append("&h4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I1")) sb.append("&i1=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I2")) sb.append("&i2=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I3")) sb.append("&i3=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I4")) sb.append("&i4=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("I5")) sb.append("&i5=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                            else if (line.startsWith("PersistentKeepalive")) sb.append("&ka=").append(URLEncoder.encode(extractVal(line), "UTF-8"));
+                                        } catch (Exception ignore) {}
+                                    }
+                                    link = sb.toString();
+                                }
+                            }
+                            links.append(link);
                         }
 
                         Intent shareIntent = new Intent(Intent.ACTION_SEND);
